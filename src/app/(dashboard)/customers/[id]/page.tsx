@@ -86,38 +86,38 @@ export default async function CustomerDetailsPage({
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Top Header */}
-      <div className="border-b border-slate-200 bg-white px-8 py-5">
+      <div className="border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/customers"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
-              Customers
+              <span>Customers</span>
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">{customer.name}</h1>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">{customer.name}</h1>
               <p className="text-xs text-slate-500">
                 Registered on {customer.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/customers/${customer.id}/cheques/new`}
-              className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-600/20 hover:bg-indigo-500 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
-              Add Cheque
+              <span>Add Cheque</span>
             </Link>
             <Link
               href={`/customers/${customer.id}/edit`}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
             >
               <Edit2 className="h-3.5 w-3.5" />
-              Edit Profile
+              <span>Edit</span>
             </Link>
             <DeleteCustomerButton
               customerId={customer.id}
@@ -127,7 +127,7 @@ export default async function CustomerDetailsPage({
         </div>
       </div>
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Info & Metrics Grid */}
         <div className="grid gap-6 md:grid-cols-3">
           {/* Contact Details Card */}

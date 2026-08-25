@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { ChequeStatus } from "@/lib/cheque-status";
+import { requireAuthorizedUser } from "@/lib/auth";
 
 export type ActionResponse<T = unknown> = {
   success: boolean;
@@ -50,6 +51,8 @@ export async function createCheque(
   formData: FormData
 ): Promise<ActionResponse<{ id: number; customerId: number }>> {
   try {
+    await requireAuthorizedUser();
+
     const chequeNumber = formData.get("chequeNumber");
     const bank = formData.get("bank");
     const amount = formData.get("amount");
@@ -138,6 +141,8 @@ export async function updateCheque(
   formData: FormData
 ): Promise<ActionResponse<{ id: number; customerId: number }>> {
   try {
+    await requireAuthorizedUser();
+
     const id = Number(formData.get("id"));
     const chequeNumber = formData.get("chequeNumber");
     const bank = formData.get("bank");
@@ -224,6 +229,8 @@ export async function updateChequeStatus(
   newStatus: ChequeStatus
 ): Promise<ActionResponse> {
   try {
+    await requireAuthorizedUser();
+
     if (!Number.isInteger(id) || id <= 0) {
       return { success: false, error: "Invalid cheque ID" };
     }
@@ -273,6 +280,8 @@ export async function deleteCheque(
   id: number
 ): Promise<ActionResponse<{ customerId: number }>> {
   try {
+    await requireAuthorizedUser();
+
     if (!Number.isInteger(id) || id <= 0) {
       return { success: false, error: "Invalid cheque ID" };
     }

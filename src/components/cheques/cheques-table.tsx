@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import StatusBadge from "@/components/ui/status-badge";
 import QuickStatusSelector from "@/components/cheques/quick-status-selector";
+import PaginationControls from "@/components/ui/pagination-controls";
 import { deleteCheque } from "@/app/actions/cheque-actions";
 import type { ChequeStatus, ChequeAttentionStatus } from "@/lib/cheque-status";
 
@@ -42,14 +43,23 @@ export type SerializedCheque = {
 type ChequesTableProps = {
   cheques: SerializedCheque[];
   showCustomerColumn?: boolean;
+  defaultPageSize?: number;
 };
 
 export default function ChequesTable({
   cheques,
   showCustomerColumn = true,
+  defaultPageSize = 10,
 }: ChequesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+
+  // Reset to page 1 whenever filters or search query change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const counts = useMemo(() => {
     return {
@@ -84,6 +94,14 @@ export default function ChequesTable({
     });
   }, [cheques, statusFilter, searchTerm]);
 
+  const totalPages = Math.ceil(filteredCheques.length / pageSize) || 1;
+
+  // Slice cheques for the active page
+  const paginatedCheques = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredCheques.slice(start, start + pageSize);
+  }, [filteredCheques, currentPage, pageSize]);
+
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -115,21 +133,21 @@ export default function ChequesTable({
   return (
     <div className="space-y-4">
       {/* Controls Bar: Search & Status Tabs */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Search */}
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative w-full lg:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Search cheque #, customer, bank..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400"
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
           />
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1">
+        {/* Status Filter Tabs (Scrollable on mobile) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full rounded-xl border border-slate-200 bg-slate-100/80 p-1 shrink-0 scrollbar-none">
           {[
             { id: "ALL", label: "All", count: counts.ALL, alert: false },
             { id: "OVERDUE", label: "Overdue", count: counts.OVERDUE, alert: counts.OVERDUE > 0, badgeBg: "bg-red-600 text-white" },
@@ -142,21 +160,22 @@ export default function ChequesTable({
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                     tab.alert
                       ? tab.badgeBg
                       : isActive
                       ? "bg-slate-100 text-slate-800"
-                      : "bg-slate-200/70 text-slate-600"
+                      : "bg-slate-200 text-slate-600"
                   }`}
                 >
                   {tab.count}
@@ -210,7 +229,7 @@ export default function ChequesTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredCheques.map((cheque) => {
+                {paginatedCheques.map((cheque) => {
                   const isOverdue = cheque.attentionStatus === "OVERDUE";
                   const isDueSoon = cheque.attentionStatus === "DUE_SOON";
 
@@ -333,6 +352,21 @@ export default function ChequesTable({
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Pagination Controls */}
+        {filteredCheques.length > 0 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredCheques.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+          />
         )}
       </div>
     </div>

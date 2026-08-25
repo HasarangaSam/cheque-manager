@@ -39,18 +39,18 @@ export default async function EditChequePage({ params }: EditChequePageProps) {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Top Header */}
-      <div className="border-b border-slate-200 bg-white px-8 py-5">
+      <div className="border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex items-center gap-4">
           <Link
             href={`/cheques/${cheque.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            <span>Back</span>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">
-              Edit Cheque {cheque.chequeNumber}
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Edit Cheque #{cheque.chequeNumber}
             </h1>
             <p className="text-xs text-slate-500">
               Customer: <span className="font-semibold text-slate-800">{cheque.customer.name}</span>
@@ -59,8 +59,8 @@ export default async function EditChequePage({ params }: EditChequePageProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-8 py-8">
-        <div className="rounded-lg border border-slate-200 bg-white p-8">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
           <ChequeForm
             mode="edit"
             customerId={cheque.customer.id}
