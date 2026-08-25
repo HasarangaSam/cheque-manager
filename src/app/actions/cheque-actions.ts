@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { ChequeStatus } from "@/lib/cheque-status";
-import { requireAuthorizedUser } from "@/lib/auth";
 
 export type ActionResponse<T = unknown> = {
   success: boolean;
@@ -51,16 +50,17 @@ export async function createCheque(
   formData: FormData
 ): Promise<ActionResponse<{ id: number; customerId: number }>> {
   try {
-    await requireAuthorizedUser();
-
     const chequeNumber = formData.get("chequeNumber");
     const bank = formData.get("bank");
     const amount = formData.get("amount");
     const chequeDate = formData.get("chequeDate");
     const dueDate = formData.get("dueDate");
-    const status = formData.get("status");
     const notes = formData.get("notes");
-    const customerIdValue = formData.get("customerId");
+    const customerId = Number(formData.get("customerId"));
+
+    if (!Number.isInteger(customerId) || customerId <= 0) {
+      return { success: false, error: "Invalid customer selected" };
+    }
 
     if (typeof chequeNumber !== "string" || !chequeNumber.trim()) {
       return { success: false, error: "Cheque number is required" };
@@ -68,16 +68,6 @@ export async function createCheque(
 
     if (typeof bank !== "string" || !bank.trim()) {
       return { success: false, error: "Bank is required" };
-    }
-
-    const customerId = Number(customerIdValue);
-
-    if (!Number.isInteger(customerId) || customerId <= 0) {
-      return { success: false, error: "Invalid customer" };
-    }
-
-    if (status !== "PENDING" && status !== "CLEARED" && status !== "BOUNCED") {
-      return { success: false, error: "Invalid cheque status" };
     }
 
     const parsedChequeDate = parseDateOnly(chequeDate);
@@ -88,6 +78,7 @@ export async function createCheque(
       return { success: false, error: "Due date cannot be before cheque date" };
     }
 
+    // Verify customer exists
     const customer = await prisma.customer.findUnique({
       where: {
         id: customerId,
@@ -101,20 +92,16 @@ export async function createCheque(
       return { success: false, error: "Customer not found" };
     }
 
-    const newCheque = await prisma.cheque.create({
+    const cheque = await prisma.cheque.create({
       data: {
+        customerId,
         chequeNumber: chequeNumber.trim(),
         bank: bank.trim(),
         amount: parsedAmount,
         chequeDate: parsedChequeDate,
         dueDate: parsedDueDate,
-        status,
+        status: "PENDING",
         notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
-        customer: {
-          connect: {
-            id: customerId,
-          },
-        },
       },
     });
 
@@ -124,8 +111,8 @@ export async function createCheque(
 
     return {
       success: true,
-      message: `Cheque "${newCheque.chequeNumber}" added successfully!`,
-      data: { id: newCheque.id, customerId },
+      message: `Cheque "${cheque.chequeNumber}" created successfully!`,
+      data: { id: cheque.id, customerId },
     };
   } catch (error) {
     console.error("Failed to create cheque:", error);
@@ -141,8 +128,6 @@ export async function updateCheque(
   formData: FormData
 ): Promise<ActionResponse<{ id: number; customerId: number }>> {
   try {
-    await requireAuthorizedUser();
-
     const id = Number(formData.get("id"));
     const chequeNumber = formData.get("chequeNumber");
     const bank = formData.get("bank");
@@ -229,8 +214,6 @@ export async function updateChequeStatus(
   newStatus: ChequeStatus
 ): Promise<ActionResponse> {
   try {
-    await requireAuthorizedUser();
-
     if (!Number.isInteger(id) || id <= 0) {
       return { success: false, error: "Invalid cheque ID" };
     }
@@ -280,8 +263,6 @@ export async function deleteCheque(
   id: number
 ): Promise<ActionResponse<{ customerId: number }>> {
   try {
-    await requireAuthorizedUser();
-
     if (!Number.isInteger(id) || id <= 0) {
       return { success: false, error: "Invalid cheque ID" };
     }

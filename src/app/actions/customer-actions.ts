@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireAuthorizedUser } from "@/lib/auth";
 
 export type ActionResponse<T = unknown> = {
   success: boolean;
@@ -15,8 +14,6 @@ export async function createCustomer(
   formData: FormData
 ): Promise<ActionResponse<{ id: number }>> {
   try {
-    await requireAuthorizedUser();
-
     const name = formData.get("name");
     const phone = formData.get("phone");
     const email = formData.get("email");
@@ -64,8 +61,6 @@ export async function updateCustomer(
   formData: FormData
 ): Promise<ActionResponse<{ id: number }>> {
   try {
-    await requireAuthorizedUser();
-
     const id = Number(formData.get("id"));
     const name = formData.get("name");
     const phone = formData.get("phone");
@@ -120,8 +115,6 @@ export async function updateCustomer(
 
 export async function deleteCustomer(id: number): Promise<ActionResponse> {
   try {
-    await requireAuthorizedUser();
-
     if (!Number.isInteger(id) || id <= 0) {
       return { success: false, error: "Invalid customer ID" };
     }

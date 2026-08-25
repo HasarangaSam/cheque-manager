@@ -3,15 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton, SignOutButton } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   Users,
   CreditCard,
-  LogOut,
   Menu,
   X,
-  ShieldCheck,
 } from "lucide-react";
 
 const navigation = [
@@ -124,53 +121,12 @@ export default function Sidebar() {
       </div>
 
       <div>
-        {/* User Section & Logout */}
-        <div className="border-t border-slate-800/80 px-4 py-3.5 bg-slate-950 space-y-3">
-          <div className="flex items-center gap-3">
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "h-8 w-8 ring-2 ring-indigo-500/30",
-                  userButtonPopoverCard:
-                    "bg-slate-900 border border-slate-800 text-white shadow-2xl",
-                  userPreviewMainIdentifier: "text-white font-semibold text-xs",
-                  userPreviewSecondaryIdentifier: "text-slate-400 text-[11px]",
-                  userButtonPopoverActionButton:
-                    "hover:bg-slate-800 text-slate-200",
-                  userButtonPopoverActionButtonIcon: "text-indigo-400",
-                  userButtonPopoverFooter: "hidden",
-                },
-              }}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white truncate">
-                Administrator
-              </p>
-              <p className="text-[10px] text-slate-400 font-mono truncate flex items-center gap-1">
-                <ShieldCheck className="h-3 w-3 text-emerald-400 inline" />
-                Authorized
-              </p>
-            </div>
-          </div>
-
-          {/* Dedicated Logout Button */}
-          <SignOutButton redirectUrl="/sign-in">
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-slate-900 hover:bg-rose-950/50 text-slate-300 hover:text-rose-300 border border-slate-800 hover:border-rose-800/50 px-3 py-2 text-xs font-semibold transition-all group cursor-pointer shadow-sm active:scale-[0.98]"
-            >
-              <LogOut className="h-3.5 w-3.5 text-slate-400 group-hover:text-rose-400 transition-colors" />
-              <span>Sign Out</span>
-            </button>
-          </SignOutButton>
-        </div>
-
         {/* Footer */}
         <div className="border-t border-slate-800/50 px-5 py-3 bg-slate-950/50">
           <div className="flex items-center justify-between text-[11px] text-slate-500">
             <span>ChequeManager</span>
             <span className="inline-block rounded bg-emerald-950/70 border border-emerald-800/40 px-1.5 py-0.5 text-[10px] text-emerald-400 font-mono font-medium">
-              Live
+              Ready
             </span>
           </div>
         </div>
@@ -201,16 +157,6 @@ export default function Sidebar() {
             </span>
           </Link>
         </div>
-
-        <div className="flex items-center gap-2">
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "h-7 w-7 ring-2 ring-indigo-500/30",
-              },
-            }}
-          />
-        </div>
       </header>
 
       {/* Mobile Slide-Over Drawer with Backdrop */}
@@ -236,3 +182,4 @@ export default function Sidebar() {
     </>
   );
 }
+

@@ -1,18 +1,10 @@
-import { redirect } from "next/navigation";
-import { currentUser } from "@clerk/nextjs/server";
 import Sidebar from "@/components/layout/sidebar";
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await currentUser();
-
-  if (!user) {
-    redirect("/sign-in");
-  }
-
   return (
     <div className="min-h-screen bg-slate-50">
       <Sidebar />
@@ -23,3 +15,4 @@ export default async function DashboardLayout({
     </div>
   );
 }
+
