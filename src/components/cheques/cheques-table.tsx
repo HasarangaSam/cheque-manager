@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -12,7 +12,9 @@ import {
   CheckCircle2,
   XCircle,
   Filter,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import StatusBadge from "@/components/ui/status-badge";
 import QuickStatusSelector from "@/components/cheques/quick-status-selector";
 import { deleteCheque } from "@/app/actions/cheque-actions";
@@ -82,13 +84,25 @@ export default function ChequesTable({
     });
   }, [cheques, statusFilter, searchTerm]);
 
-  function handleDelete(event: React.FormEvent<HTMLFormElement>, chequeNumber: string) {
+  const [isPending, startTransition] = useTransition();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  function handleDelete(id: number, chequeNumber: string) {
     const confirmed = window.confirm(
       `Are you sure you want to delete Cheque "${chequeNumber}"? This action cannot be undone.`
     );
-    if (!confirmed) {
-      event.preventDefault();
-    }
+    if (!confirmed) return;
+
+    setDeletingId(id);
+    startTransition(async () => {
+      const res = await deleteCheque(id);
+      if (res.success) {
+        toast.success(res.message || `Cheque "${chequeNumber}" deleted`);
+      } else {
+        toast.error(res.error || "Failed to delete cheque");
+      }
+      setDeletingId(null);
+    });
   }
 
   const fmt = (amount: number) =>
@@ -298,20 +312,19 @@ export default function ChequesTable({
                           </Link>
 
                           {/* Delete */}
-                          <form
-                            action={deleteCheque}
-                            onSubmit={(e) => handleDelete(e, cheque.chequeNumber)}
-                            className="inline-block"
+                          <button
+                            type="button"
+                            disabled={deletingId === cheque.id}
+                            onClick={() => handleDelete(cheque.id, cheque.chequeNumber)}
+                            title="Delete Cheque"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 disabled:opacity-50"
                           >
-                            <input type="hidden" name="id" value={cheque.id} />
-                            <button
-                              type="submit"
-                              title="Delete Cheque"
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-                            >
+                            {deletingId === cheque.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
                               <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </form>
+                            )}
+                          </button>
                         </div>
                       </td>
                     </tr>

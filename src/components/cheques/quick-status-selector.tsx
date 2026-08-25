@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { updateChequeStatus } from "@/app/actions/cheque-actions";
 import type { ChequeStatus } from "@/lib/cheque-status";
-import { Check, AlertCircle, Clock, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 type QuickStatusSelectorProps = {
   chequeId: number;
@@ -19,18 +20,25 @@ export default function QuickStatusSelector({
 
   function handleStatusChange(newStatus: ChequeStatus) {
     if (newStatus === status) return;
+    
+    const previousStatus = status;
     setStatus(newStatus);
+
     startTransition(async () => {
-      try {
-        await updateChequeStatus(chequeId, newStatus);
-      } catch (err) {
-        setStatus(currentStatus);
-        console.error(err);
+      const res = await updateChequeStatus(chequeId, newStatus);
+      if (res.success) {
+        toast.success(res.message || `Cheque status updated to ${newStatus}`);
+      } else {
+        setStatus(previousStatus);
+        toast.error(res.error || "Failed to update cheque status");
       }
     });
   }
 
-  const styles: Record<ChequeStatus, { border: string; bg: string; text: string }> = {
+  const styles: Record<
+    ChequeStatus,
+    { border: string; bg: string; text: string }
+  > = {
     PENDING: {
       border: "border-amber-300",
       bg: "bg-amber-50",
@@ -54,9 +62,11 @@ export default function QuickStatusSelector({
         disabled={isPending}
         value={status}
         onChange={(e) => handleStatusChange(e.target.value as ChequeStatus)}
-        className={`h-7 cursor-pointer appearance-none rounded-md border pl-2 pr-6 text-xs font-semibold tracking-wide outline-none transition-all hover:opacity-90 focus:ring-1 focus:ring-slate-400 ${styles[status].border
-          } ${styles[status].bg} ${styles[status].text} ${isPending ? "opacity-60" : ""
-          }`}
+        className={`h-7 cursor-pointer appearance-none rounded-md border pl-2 pr-6 text-xs font-semibold tracking-wide outline-none transition-all hover:opacity-90 focus:ring-1 focus:ring-slate-400 ${
+          styles[status].border
+        } ${styles[status].bg} ${styles[status].text} ${
+          isPending ? "opacity-60" : ""
+        }`}
       >
         <option value="PENDING">PENDING</option>
         <option value="CLEARED">CLEARED</option>
