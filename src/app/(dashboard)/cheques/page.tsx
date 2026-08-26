@@ -1,30 +1,133 @@
 import Link from "next/link";
-import { CreditCard, Plus, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { CreditCard, Plus, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import {
   getChequeAttentionStatus,
   getDueUrgencyText,
   getChequeDaysDifference,
 } from "@/lib/cheque-status";
-import ChequesTable, { SerializedCheque } from "@/components/cheques/cheques-table";
+import ChequesTable, { SerializedCheque, StatusCounts } from "@/components/cheques/cheques-table";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChequesPage() {
-  const cheques = await prisma.cheque.findMany({
-    orderBy: { dueDate: "asc" },
-    include: {
-      customer: {
-        select: {
-          id: true,
-          name: true,
-          phone: true,
-        },
-      },
-    },
-  });
+type ChequesPageProps = {
+  searchParams: Promise<{
+    page?: string;
+    pageSize?: string;
+    q?: string;
+    status?: string;
+  }>;
+};
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function startOfUtcDay(date: Date) {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  );
+}
+
+export default async function ChequesPage({ searchParams }: ChequesPageProps) {
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page || "1", 10) || 1);
+  const pageSize = Math.min(100, Math.max(10, parseInt(params.pageSize || "50", 10) || 50));
+  const query = params.q?.trim() || "";
+  const statusParam = (params.status || "ALL").toUpperCase();
 
   const now = new Date();
+  const todayStart = startOfUtcDay(now);
+  const threeDaysAhead = new Date(todayStart.getTime() + 3 * MS_PER_DAY + (MS_PER_DAY - 1));
+
+  // Build search filter conditions
+  const searchFilter: Prisma.ChequeWhereInput = query
+    ? {
+        OR: [
+          { chequeNumber: { contains: query, mode: "insensitive" } },
+          { bank: { contains: query, mode: "insensitive" } },
+          { notes: { contains: query, mode: "insensitive" } },
+          { customer: { name: { contains: query, mode: "insensitive" } } },
+        ],
+      }
+    : {};
+
+  // Status specific filter
+  let statusCondition: Prisma.ChequeWhereInput = {};
+  if (statusParam === "OVERDUE") {
+    statusCondition = { status: "PENDING", dueDate: { lt: todayStart } };
+  } else if (statusParam === "DUE_SOON") {
+    statusCondition = { status: "PENDING", dueDate: { gte: todayStart, lte: threeDaysAhead } };
+  } else if (statusParam === "UPCOMING") {
+    statusCondition = { status: "PENDING", dueDate: { gt: threeDaysAhead } };
+  } else if (statusParam === "CLEARED") {
+    statusCondition = { status: "CLEARED" };
+  } else if (statusParam === "BOUNCED") {
+    statusCondition = { status: "BOUNCED" };
+  } else if (statusParam === "PENDING") {
+    statusCondition = { status: "PENDING" };
+  }
+
+  const finalWhere: Prisma.ChequeWhereInput = {
+    AND: [searchFilter, statusCondition],
+  };
+
+  // Run aggregate/counts and paginated items query concurrently
+  const [
+    allCount,
+    overdueCount,
+    dueSoonCount,
+    upcomingCount,
+    clearedCount,
+    bouncedCount,
+    totalFilteredCount,
+    cheques,
+    overdueChequesAgg,
+  ] = await Promise.all([
+    prisma.cheque.count({ where: searchFilter }),
+    prisma.cheque.count({
+      where: { AND: [searchFilter, { status: "PENDING", dueDate: { lt: todayStart } }] },
+    }),
+    prisma.cheque.count({
+      where: {
+        AND: [
+          searchFilter,
+          { status: "PENDING", dueDate: { gte: todayStart, lte: threeDaysAhead } },
+        ],
+      },
+    }),
+    prisma.cheque.count({
+      where: {
+        AND: [searchFilter, { status: "PENDING", dueDate: { gt: threeDaysAhead } }],
+      },
+    }),
+    prisma.cheque.count({
+      where: { AND: [searchFilter, { status: "CLEARED" }] },
+    }),
+    prisma.cheque.count({
+      where: { AND: [searchFilter, { status: "BOUNCED" }] },
+    }),
+    prisma.cheque.count({ where: finalWhere }),
+    prisma.cheque.findMany({
+      where: finalWhere,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: { dueDate: "asc" },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+          },
+        },
+      },
+    }),
+    prisma.cheque.aggregate({
+      where: { status: "PENDING", dueDate: { lt: todayStart } },
+      _sum: { amount: true },
+      _count: { _all: true },
+    }),
+  ]);
 
   const serializedCheques: SerializedCheque[] = cheques.map((c) => {
     const attentionStatus = getChequeAttentionStatus(c.status, c.dueDate, now);
@@ -50,11 +153,17 @@ export default async function ChequesPage() {
     };
   });
 
-  const overdueCount = serializedCheques.filter((c) => c.attentionStatus === "OVERDUE").length;
-  const dueSoonCount = serializedCheques.filter((c) => c.attentionStatus === "DUE_SOON").length;
-  const overdueTotal = serializedCheques
-    .filter((c) => c.attentionStatus === "OVERDUE")
-    .reduce((sum, c) => sum + c.amount, 0);
+  const statusCounts: StatusCounts = {
+    ALL: allCount,
+    OVERDUE: overdueCount,
+    DUE_SOON: dueSoonCount,
+    UPCOMING: upcomingCount,
+    CLEARED: clearedCount,
+    BOUNCED: bouncedCount,
+  };
+
+  const totalOverdueCount = overdueChequesAgg._count._all || 0;
+  const overdueTotalAmount = Number(overdueChequesAgg._sum.amount || 0);
 
   const fmt = (amount: number) =>
     new Intl.NumberFormat("en-US", {
@@ -91,13 +200,13 @@ export default async function ChequesPage() {
 
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Urgent Attention Alert Banner if overdue exist */}
-        {overdueCount > 0 && (
+        {totalOverdueCount > 0 && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-red-200 bg-red-50/90 p-4 text-red-900 shadow-sm">
             <div className="flex items-start sm:items-center gap-3">
               <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-600 mt-0.5 sm:mt-0" />
               <div>
                 <p className="text-sm font-bold">
-                  {overdueCount} {overdueCount === 1 ? "Cheque is" : "Cheques are"} Overdue ({fmt(overdueTotal)})
+                  {totalOverdueCount} {totalOverdueCount === 1 ? "Cheque is" : "Cheques are"} Overdue ({fmt(overdueTotalAmount)})
                 </p>
                 <p className="text-xs text-red-700 mt-0.5">
                   Please contact the respective customers or deposit immediately.
@@ -108,7 +217,16 @@ export default async function ChequesPage() {
         )}
 
         {/* Main Interactive Table */}
-        <ChequesTable cheques={serializedCheques} showCustomerColumn={true} />
+        <ChequesTable
+          cheques={serializedCheques}
+          showCustomerColumn={true}
+          totalCount={totalFilteredCount}
+          currentPage={page}
+          pageSize={pageSize}
+          searchQuery={query}
+          currentStatusFilter={statusParam}
+          statusCounts={statusCounts}
+        />
       </div>
     </div>
   );

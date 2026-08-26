@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Search,
@@ -39,28 +40,126 @@ export type SerializedCheque = {
   };
 };
 
+export type StatusCounts = {
+  ALL: number;
+  OVERDUE: number;
+  DUE_SOON: number;
+  UPCOMING: number;
+  CLEARED: number;
+  BOUNCED: number;
+};
+
 type ChequesTableProps = {
   cheques: SerializedCheque[];
   showCustomerColumn?: boolean;
+  totalCount?: number;
+  currentPage?: number;
+  pageSize?: number;
+  searchQuery?: string;
+  currentStatusFilter?: string;
+  statusCounts?: StatusCounts;
   defaultPageSize?: number;
 };
 
 export default function ChequesTable({
   cheques,
   showCustomerColumn = true,
+  totalCount,
+  currentPage = 1,
+  pageSize = 50,
+  searchQuery = "",
+  currentStatusFilter = "ALL",
+  statusCounts,
   defaultPageSize = 50,
 }: ChequesTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const isServerDriven = totalCount !== undefined;
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  // Reset to page 1 whenever filters or search query change
+  const [searchTerm, setSearchTerm] = useState(searchQuery);
+  const [clientStatusFilter, setClientStatusFilter] = useState<string>("ALL");
+  const [clientCurrentPage, setClientCurrentPage] = useState(1);
+  const [clientPageSize, setClientPageSize] = useState(defaultPageSize);
+
+  const [isPending, startTransition] = useTransition();
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Sync state if server search query changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+    if (isServerDriven) {
+      setSearchTerm(searchQuery);
+    }
+  }, [searchQuery, isServerDriven]);
 
-  const counts = useMemo(() => {
+  // Debounced search when server-driven
+  useEffect(() => {
+    if (!isServerDriven) return;
+    if (searchTerm === searchQuery) return;
+
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchTerm.trim()) {
+        params.set("q", searchTerm.trim());
+      } else {
+        params.delete("q");
+      }
+      params.set("page", "1");
+
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, searchQuery, pathname, router, searchParams, isServerDriven]);
+
+  const handleStatusFilterChange = (status: string) => {
+    if (isServerDriven) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (status === "ALL") {
+        params.delete("status");
+      } else {
+        params.set("status", status);
+      }
+      params.set("page", "1");
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    } else {
+      setClientStatusFilter(status);
+      setClientCurrentPage(1);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (isServerDriven) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("page", String(newPage));
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    } else {
+      setClientCurrentPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    if (isServerDriven) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("pageSize", String(newSize));
+      params.set("page", "1");
+      startTransition(() => {
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    } else {
+      setClientPageSize(newSize);
+      setClientCurrentPage(1);
+    }
+  };
+
+  // Client-side fallback counts and filtering
+  const clientCounts = useMemo(() => {
     return {
       ALL: cheques.length,
       OVERDUE: cheques.filter((c) => c.attentionStatus === "OVERDUE").length,
@@ -71,17 +170,17 @@ export default function ChequesTable({
     };
   }, [cheques]);
 
-  const filteredCheques = useMemo(() => {
-    return cheques.filter((cheque) => {
-      // Status filter
-      if (statusFilter === "OVERDUE" && cheque.attentionStatus !== "OVERDUE") return false;
-      if (statusFilter === "DUE_SOON" && cheque.attentionStatus !== "DUE_SOON") return false;
-      if (statusFilter === "UPCOMING" && cheque.attentionStatus !== "UPCOMING") return false;
-      if (statusFilter === "CLEARED" && cheque.status !== "CLEARED") return false;
-      if (statusFilter === "BOUNCED" && cheque.status !== "BOUNCED") return false;
-      if (statusFilter === "PENDING" && cheque.status !== "PENDING") return false;
+  const clientFilteredCheques = useMemo(() => {
+    if (isServerDriven) return cheques;
 
-      // Search term filter
+    return cheques.filter((cheque) => {
+      if (clientStatusFilter === "OVERDUE" && cheque.attentionStatus !== "OVERDUE") return false;
+      if (clientStatusFilter === "DUE_SOON" && cheque.attentionStatus !== "DUE_SOON") return false;
+      if (clientStatusFilter === "UPCOMING" && cheque.attentionStatus !== "UPCOMING") return false;
+      if (clientStatusFilter === "CLEARED" && cheque.status !== "CLEARED") return false;
+      if (clientStatusFilter === "BOUNCED" && cheque.status !== "BOUNCED") return false;
+      if (clientStatusFilter === "PENDING" && cheque.status !== "PENDING") return false;
+
       if (!searchTerm.trim()) return true;
       const term = searchTerm.toLowerCase();
       return (
@@ -91,18 +190,20 @@ export default function ChequesTable({
         (cheque.notes && cheque.notes.toLowerCase().includes(term))
       );
     });
-  }, [cheques, statusFilter, searchTerm]);
+  }, [cheques, clientStatusFilter, searchTerm, isServerDriven]);
 
-  const totalPages = Math.ceil(filteredCheques.length / pageSize) || 1;
+  const activeCounts = isServerDriven && statusCounts ? statusCounts : clientCounts;
+  const activeStatusFilter = isServerDriven ? currentStatusFilter : clientStatusFilter;
+  const activePage = isServerDriven ? currentPage : clientCurrentPage;
+  const activePageSize = isServerDriven ? pageSize : clientPageSize;
+  const activeTotalItems = isServerDriven ? (totalCount ?? cheques.length) : clientFilteredCheques.length;
+  const totalPages = Math.ceil(activeTotalItems / activePageSize) || 1;
 
-  // Slice cheques for the active page
-  const paginatedCheques = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredCheques.slice(start, start + pageSize);
-  }, [filteredCheques, currentPage, pageSize]);
-
-  const [isPending, startTransition] = useTransition();
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const displayCheques = useMemo(() => {
+    if (isServerDriven) return cheques;
+    const start = (clientCurrentPage - 1) * clientPageSize;
+    return clientFilteredCheques.slice(start, start + clientPageSize);
+  }, [isServerDriven, cheques, clientFilteredCheques, clientCurrentPage, clientPageSize]);
 
   function handleDelete(id: number, chequeNumber: string) {
     const confirmed = window.confirm(
@@ -135,7 +236,11 @@ export default function ChequesTable({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Search */}
         <div className="relative w-full lg:max-w-xs">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          {isPending ? (
+            <Loader2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
+          ) : (
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          )}
           <input
             type="text"
             placeholder="Search cheque #, customer, bank..."
@@ -148,19 +253,19 @@ export default function ChequesTable({
         {/* Status Filter Tabs (Scrollable on mobile) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full rounded-xl border border-slate-200 bg-slate-100/80 p-1 shrink-0 scrollbar-none">
           {[
-            { id: "ALL", label: "All", count: counts.ALL, alert: false },
-            { id: "OVERDUE", label: "Overdue", count: counts.OVERDUE, alert: counts.OVERDUE > 0, badgeBg: "bg-red-600 text-white" },
-            { id: "DUE_SOON", label: "Due Soon", count: counts.DUE_SOON, alert: counts.DUE_SOON > 0, badgeBg: "bg-amber-600 text-white" },
-            { id: "UPCOMING", label: "Upcoming", count: counts.UPCOMING, alert: false },
-            { id: "CLEARED", label: "Cleared", count: counts.CLEARED, alert: false },
-            { id: "BOUNCED", label: "Bounced", count: counts.BOUNCED, alert: false },
+            { id: "ALL", label: "All", count: activeCounts.ALL, alert: false },
+            { id: "OVERDUE", label: "Overdue", count: activeCounts.OVERDUE, alert: activeCounts.OVERDUE > 0, badgeBg: "bg-red-600 text-white" },
+            { id: "DUE_SOON", label: "Due Soon", count: activeCounts.DUE_SOON, alert: activeCounts.DUE_SOON > 0, badgeBg: "bg-amber-600 text-white" },
+            { id: "UPCOMING", label: "Upcoming", count: activeCounts.UPCOMING, alert: false },
+            { id: "CLEARED", label: "Cleared", count: activeCounts.CLEARED, alert: false },
+            { id: "BOUNCED", label: "Bounced", count: activeCounts.BOUNCED, alert: false },
           ].map((tab) => {
-            const isActive = statusFilter === tab.id;
+            const isActive = activeStatusFilter === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setStatusFilter(tab.id)}
+                onClick={() => handleStatusFilterChange(tab.id)}
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
                     ? "bg-white text-slate-900 shadow-sm border border-slate-200/80"
@@ -187,7 +292,7 @@ export default function ChequesTable({
 
       {/* Cheques Data Table */}
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        {filteredCheques.length === 0 ? (
+        {displayCheques.length === 0 ? (
           <div className="px-6 py-14 text-center">
             <Filter className="mx-auto h-8 w-8 text-slate-300" />
             <p className="mt-2 text-sm font-semibold text-slate-700">No cheques found</p>
@@ -228,7 +333,7 @@ export default function ChequesTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paginatedCheques.map((cheque) => {
+                {displayCheques.map((cheque) => {
                   const isOverdue = cheque.attentionStatus === "OVERDUE";
                   const isDueSoon = cheque.attentionStatus === "DUE_SOON";
 
@@ -283,21 +388,39 @@ export default function ChequesTable({
                       {/* Due Date & Urgency Status */}
                       <td className="px-4 py-3">
                         <div className="space-y-1">
-                          <p className="text-xs font-semibold text-slate-900">
-                            {new Date(cheque.dueDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </p>
-                          <StatusBadge
-                            status={cheque.attentionStatus}
-                            urgencyText={cheque.urgencyText}
-                          />
+                          <div className="flex items-center gap-1.5 text-xs text-slate-700">
+                            <Clock className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="font-medium">
+                              {new Date(cheque.dueDate).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                timeZone: "UTC",
+                              })}
+                            </span>
+                          </div>
+                          {cheque.status === "PENDING" && (
+                            <div className="flex items-center gap-1">
+                              {isOverdue && (
+                                <AlertTriangle className="h-3 w-3 text-red-600 shrink-0" />
+                              )}
+                              <span
+                                className={`text-[11px] font-semibold ${
+                                  isOverdue
+                                    ? "text-red-700"
+                                    : isDueSoon
+                                    ? "text-amber-700"
+                                    : "text-slate-500"
+                                }`}
+                              >
+                                {cheque.urgencyText}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </td>
 
-                      {/* Quick Status Updater */}
+                      {/* Quick Status Update */}
                       <td className="px-4 py-3">
                         <QuickStatusSelector
                           chequeId={cheque.id}
@@ -311,7 +434,7 @@ export default function ChequesTable({
                           {/* View */}
                           <Link
                             href={`/cheques/${cheque.id}`}
-                            title="View Cheque Details"
+                            title="View Cheque"
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                           >
                             <Eye className="h-3.5 w-3.5" />
@@ -351,17 +474,15 @@ export default function ChequesTable({
         )}
 
         {/* Pagination Controls */}
-        {filteredCheques.length > 0 && (
+        {activeTotalItems > 0 && (
           <PaginationControls
-            currentPage={currentPage}
+            currentPage={activePage}
             totalPages={totalPages}
-            totalItems={filteredCheques.length}
-            pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              setCurrentPage(1);
-            }}
+            totalItems={activeTotalItems}
+            pageSize={activePageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            pageSizeOptions={[25, 50, 100]}
           />
         )}
       </div>

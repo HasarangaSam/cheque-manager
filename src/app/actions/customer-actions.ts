@@ -143,11 +143,22 @@ export async function deleteCustomer(id: number): Promise<ActionResponse> {
   }
 }
 
-export async function getCustomersForSelection(): Promise<
-  Array<{ id: number; name: string; phone: string }>
-> {
+export async function getCustomersForSelection(
+  query?: string,
+  limit: number = 10
+): Promise<Array<{ id: number; name: string; phone: string }>> {
   try {
+    const term = query?.trim();
     const customers = await prisma.customer.findMany({
+      where: term
+        ? {
+            OR: [
+              { name: { contains: term, mode: "insensitive" } },
+              { phone: { contains: term } },
+            ],
+          }
+        : undefined,
+      take: Math.min(limit, 50),
       orderBy: { name: "asc" },
       select: {
         id: true,

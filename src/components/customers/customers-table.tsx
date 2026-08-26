@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Search,
@@ -31,45 +32,71 @@ export type SerializedCustomer = {
 
 type CustomersTableProps = {
   customers: SerializedCustomer[];
-  defaultPageSize?: number;
+  totalCount: number;
+  currentPage: number;
+  pageSize: number;
+  searchQuery?: string;
 };
 
 export default function CustomersTable({
   customers,
-  defaultPageSize = 50,
+  totalCount,
+  currentPage,
+  pageSize,
+  searchQuery = "",
 }: CustomersTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(defaultPageSize);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  // Reset to page 1 whenever search query changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  const filteredCustomers = useMemo(() => {
-    if (!searchTerm.trim()) return customers;
-    const term = searchTerm.toLowerCase().trim();
-
-    return customers.filter((c) => {
-      return (
-        c.name.toLowerCase().includes(term) ||
-        c.phone.toLowerCase().includes(term) ||
-        (c.address && c.address.toLowerCase().includes(term)) ||
-        (c.notes && c.notes.toLowerCase().includes(term))
-      );
-    });
-  }, [customers, searchTerm]);
-
-  const totalPages = Math.ceil(filteredCustomers.length / pageSize) || 1;
-
-  const paginatedCustomers = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredCustomers.slice(start, start + pageSize);
-  }, [filteredCustomers, currentPage, pageSize]);
-
+  const [searchTerm, setSearchTerm] = useState(searchQuery);
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Sync search input if URL changes externally
+  useEffect(() => {
+    setSearchTerm(searchQuery);
+  }, [searchQuery]);
+
+  // Debounced server search via URL update
+  useEffect(() => {
+    if (searchTerm === searchQuery) return;
+
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchTerm.trim()) {
+        params.set("q", searchTerm.trim());
+      } else {
+        params.delete("q");
+      }
+      params.set("page", "1");
+
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, searchQuery, pathname, router, searchParams]);
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(newPage));
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("pageSize", String(newPageSize));
+    params.set("page", "1");
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
+  };
+
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
   function handleDelete(id: number, name: string) {
     const confirmed = window.confirm(
@@ -101,7 +128,11 @@ export default function CustomersTable({
       {/* Search Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          {isPending ? (
+            <Loader2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
+          ) : (
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          )}
           <input
             type="text"
             placeholder="Search customers by name or phone..."
@@ -112,18 +143,18 @@ export default function CustomersTable({
         </div>
 
         <div className="text-xs text-slate-500 font-medium">
-          Total: <span className="font-bold text-slate-800">{customers.length}</span> customers
+          Total: <span className="font-bold text-slate-800">{totalCount}</span> customer{totalCount !== 1 ? "s" : ""}
         </div>
       </div>
 
       {/* Customers Data Table */}
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        {filteredCustomers.length === 0 ? (
+        {customers.length === 0 ? (
           <div className="px-6 py-14 text-center">
             <Filter className="mx-auto h-8 w-8 text-slate-300" />
             <p className="mt-2 text-sm font-semibold text-slate-700">No customers found</p>
             <p className="mt-1 text-xs text-slate-500">
-              {searchTerm
+              {searchQuery
                 ? "Try adjusting your search terms"
                 : "No customers in the directory."}
             </p>
@@ -151,7 +182,7 @@ export default function CustomersTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paginatedCustomers.map((customer) => (
+                {customers.map((customer) => (
                   <tr
                     key={customer.id}
                     className="hover:bg-slate-50/80 transition-colors group"
@@ -248,17 +279,15 @@ export default function CustomersTable({
         )}
 
         {/* Pagination Controls */}
-        {filteredCustomers.length > 0 && (
+        {totalCount > 0 && (
           <PaginationControls
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredCustomers.length}
+            totalItems={totalCount}
             pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              setCurrentPage(1);
-            }}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            pageSizeOptions={[25, 50, 100]}
           />
         )}
       </div>

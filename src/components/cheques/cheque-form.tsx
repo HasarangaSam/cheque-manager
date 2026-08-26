@@ -77,26 +77,37 @@ export default function ChequeForm({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Sync and fetch fresh customer list on mount and when dropdown opens
+  // Debounced real-time server search (limited to top 10 results)
   useEffect(() => {
-    if (customers !== undefined) {
-      setCustomerList(customers);
-      getCustomersForSelection()
-        .then((fresh) => {
-          if (fresh) setCustomerList(fresh);
-        })
-        .catch(console.error);
-    }
-  }, [customers]);
+    if (customers === undefined) return;
+
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const fresh = await getCustomersForSelection(searchTerm, 10);
+        setCustomerList(fresh || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, customers]);
 
   const refreshCustomers = async () => {
     try {
-      const fresh = await getCustomersForSelection();
+      setIsSearching(true);
+      const fresh = await getCustomersForSelection(searchTerm, 10);
       if (fresh) setCustomerList(fresh);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -110,17 +121,6 @@ export default function ChequeForm({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const filteredCustomers = customers
-    ? customerList.filter((c) => {
-        const term = searchTerm.toLowerCase().trim();
-        if (!term) return true;
-        return (
-          c.name.toLowerCase().includes(term) ||
-          c.phone.toLowerCase().includes(term)
-        );
-      })
-    : [];
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -224,7 +224,11 @@ export default function ChequeForm({
             ) : (
               /* Search input + dropdown */
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                {isSearching ? (
+                  <Loader2 className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-indigo-500" />
+                ) : (
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                )}
                 <input
                   type="text"
                   placeholder="Search customer by name or phone..."
@@ -243,15 +247,17 @@ export default function ChequeForm({
 
                 {dropdownOpen && (
                   <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                    {filteredCustomers.length === 0 ? (
+                    {customerList.length === 0 ? (
                       <p className="px-4 py-3 text-xs text-slate-500">
-                        {customerList.length === 0
-                          ? "No customers found. Add a customer first."
-                          : "No customers match your search."}
+                        {isSearching
+                          ? "Searching customers..."
+                          : searchTerm.trim()
+                          ? "No customers match your search."
+                          : "No customers found. Add a customer first."}
                       </p>
                     ) : (
                       <ul className="max-h-52 overflow-y-auto divide-y divide-slate-100">
-                        {filteredCustomers.map((c) => (
+                        {customerList.map((c) => (
                           <li key={c.id}>
                             <button
                               type="button"

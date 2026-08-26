@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DirectNewChequePage() {
   const customers = await prisma.customer.findMany({
+    take: 10,
     orderBy: { name: "asc" },
     select: {
       id: true,

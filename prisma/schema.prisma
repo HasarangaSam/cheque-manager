@@ -23,6 +23,9 @@ model Customer {
   updatedAt DateTime @updatedAt
 
   cheques Cheque[]
+
+  @@index([name])
+  @@index([phone])
 }
 
 model Cheque {

@@ -5,19 +5,49 @@ import CustomersTable, { SerializedCustomer } from "@/components/customers/custo
 
 export const dynamic = "force-dynamic";
 
-export default async function CustomersPage() {
-  const customers = await prisma.customer.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      _count: { select: { cheques: true } },
-      cheques: {
-        select: {
-          status: true,
-          amount: true,
+type CustomersPageProps = {
+  searchParams: Promise<{
+    page?: string;
+    pageSize?: string;
+    q?: string;
+  }>;
+};
+
+export default async function CustomersPage({ searchParams }: CustomersPageProps) {
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page || "1", 10) || 1);
+  const pageSize = Math.min(100, Math.max(10, parseInt(params.pageSize || "25", 10) || 25));
+  const query = params.q?.trim() || "";
+
+  const where = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          { phone: { contains: query } },
+          { address: { contains: query, mode: "insensitive" as const } },
+          { notes: { contains: query, mode: "insensitive" as const } },
+        ],
+      }
+    : undefined;
+
+  const [totalCount, customers] = await Promise.all([
+    prisma.customer.count({ where }),
+    prisma.customer.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: { name: "asc" },
+      include: {
+        _count: { select: { cheques: true } },
+        cheques: {
+          select: {
+            status: true,
+            amount: true,
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
 
   const serializedCustomers: SerializedCustomer[] = customers.map((c) => {
     const pendingCheques = c.cheques.filter((ch) => ch.status === "PENDING");
@@ -50,7 +80,7 @@ export default async function CustomersPage() {
             <div>
               <h1 className="text-xl font-bold text-slate-900">Customer Directory</h1>
               <p className="text-xs text-slate-500">
-                {customers.length} registered customer{customers.length !== 1 ? "s" : ""}
+                {totalCount} registered customer{totalCount !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -65,7 +95,7 @@ export default async function CustomersPage() {
       </div>
 
       <div className="px-8 py-6">
-        {customers.length === 0 ? (
+        {totalCount === 0 && !query ? (
           <div className="rounded-lg border border-slate-200 bg-white px-8 py-16 text-center shadow-sm">
             <Users className="mx-auto h-10 w-10 text-slate-300" />
             <h2 className="mt-3 text-base font-bold text-slate-800">No customers registered</h2>
@@ -79,7 +109,13 @@ export default async function CustomersPage() {
             </Link>
           </div>
         ) : (
-          <CustomersTable customers={serializedCustomers} />
+          <CustomersTable
+            customers={serializedCustomers}
+            totalCount={totalCount}
+            currentPage={page}
+            pageSize={pageSize}
+            searchQuery={query}
+          />
         )}
       </div>
     </div>
