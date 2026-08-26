@@ -46,7 +46,7 @@ export function getChequeAttentionStatus(
     return "OVERDUE";
   }
 
-  if (differenceInDays <= 7) {
+  if (differenceInDays <= 3) {
     return "DUE_SOON";
   }
 
@@ -69,6 +69,5 @@ export function getDueUrgencyText(
   }
   if (diff === 0) return "Due today";
   if (diff === 1) return "Due tomorrow";
-  if (diff <= 7) return `Due in ${diff} days`;
   return `Due in ${diff} days`;
 }

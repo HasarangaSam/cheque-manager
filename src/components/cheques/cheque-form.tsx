@@ -40,6 +40,20 @@ function formatDate(date?: string | Date) {
   return date.toISOString().slice(0, 10);
 }
 
+// Format a numeric string with thousand-separator commas, preserving a trailing decimal point/digits
+function formatAmountDisplay(raw: string): string {
+  if (!raw) return "";
+  // Split on the first decimal point
+  const [intPart, decPart] = raw.split(".");
+  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
+}
+
+// Strip commas and return the raw decimal string suitable for submission
+function stripCommas(value: string): string {
+  return value.replace(/,/g, "");
+}
+
 export default function ChequeForm({
   mode,
   customerId,
@@ -50,7 +64,14 @@ export default function ChequeForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  // ── Customer search state (only used when `customers` list is provided) ──
+  // ── Amount formatting state ──
+  const initialAmountRaw =
+    initialData?.amount !== undefined ? String(initialData.amount) : "";
+  const [amountDisplay, setAmountDisplay] = useState(
+    formatAmountDisplay(initialAmountRaw)
+  );
+  const [rawAmount, setRawAmount] = useState(initialAmountRaw);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -84,6 +105,12 @@ export default function ChequeForm({
     // Validate customer selection if in search mode
     if (customers && !selectedCustomer) {
       toast.error("Please select a customer");
+      return;
+    }
+
+    // Validate amount
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) {
+      toast.error("Please enter a valid amount greater than zero");
       return;
     }
 
@@ -281,22 +308,31 @@ export default function ChequeForm({
           >
             Amount (LKR) <span className="text-red-500">*</span>
           </label>
-          <input
-            id="amount"
-            name="amount"
-            type="number"
-            min="0.01"
-            step="0.01"
-            placeholder="0.00"
-            required
-            defaultValue={
-              initialData?.amount !== undefined
-                ? initialData.amount.toString()
-                : ""
-            }
-            disabled={isPending}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-all focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/20 disabled:opacity-60"
-          />
+          {/* Hidden input carries the raw value to the server action */}
+          <input type="hidden" name="amount" value={rawAmount} />
+          {/* Visible formatted display input */}
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">
+              LKR
+            </span>
+            <input
+              id="amount"
+              type="text"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={amountDisplay}
+              disabled={isPending}
+              onChange={(e) => {
+                const raw = stripCommas(e.target.value);
+                // Allow only digits and at most one decimal point with up to 2 places
+                if (raw === "" || /^\d*(\.\d{0,2})?$/.test(raw)) {
+                  setRawAmount(raw);
+                  setAmountDisplay(formatAmountDisplay(raw));
+                }
+              }}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-12 pr-3.5 text-sm text-slate-900 outline-none transition-all focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/20 disabled:opacity-60"
+            />
+          </div>
         </div>
 
         {/* ── Status (edit mode only) ── */}
