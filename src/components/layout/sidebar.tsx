@@ -9,7 +9,10 @@ import {
   CreditCard,
   Menu,
   X,
+  LogOut,
+  Shield,
 } from "lucide-react";
+import { logoutAction } from "@/app/actions/auth-actions";
 
 const navigation = [
   {
@@ -119,18 +122,34 @@ export default function Sidebar() {
       </div>
 
       <div>
-        {/* Footer */}
-        <div className="border-t border-slate-800/50 px-5 py-3 bg-slate-950/50">
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
-            <span>ChequeManager</span>
-            <span className="inline-block rounded bg-emerald-950/70 border border-emerald-800/40 px-1.5 py-0.5 text-[10px] text-emerald-400 font-mono font-medium">
-              Ready
-            </span>
+        {/* User Account & Logout Footer */}
+        <div className="border-t border-slate-800/80 px-3 py-3 bg-slate-950/60 space-y-1.5">
+          {/* Sign Out nav item */}
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="group flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold tracking-wide text-slate-400 hover:bg-rose-950/40 hover:text-rose-400 transition-all cursor-pointer"
+            >
+              <LogOut className="h-4 w-4 flex-shrink-0 text-slate-500 group-hover:text-rose-400 transition-colors" />
+              <span>Sign Out</span>
+            </button>
+          </form>
+
+          {/* Admin badge */}
+          <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg border border-slate-800/60 bg-slate-900/40">
+            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-indigo-950 border border-indigo-800/40 text-indigo-400">
+              <Shield className="h-3 w-3" />
+            </div>
+            <div className="truncate">
+              <p className="text-xs font-semibold text-slate-200 truncate">Admin</p>
+              <p className="text-[10px] text-emerald-400 font-medium">Active Session</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
+
 
   return (
     <>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { ChequeStatus } from "@/lib/cheque-status";
+import { requireAuth } from "@/lib/auth";
 
 export type ActionResponse<T = unknown> = {
   success: boolean;
@@ -10,6 +11,7 @@ export type ActionResponse<T = unknown> = {
   data?: T;
   error?: string;
 };
+
 
 function parseDateOnly(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value) {
@@ -50,6 +52,8 @@ export async function createCheque(
   formData: FormData
 ): Promise<ActionResponse<{ id: number; customerId: number }>> {
   try {
+    await requireAuth();
+
     const chequeNumber = formData.get("chequeNumber");
     const bank = formData.get("bank");
     const amount = formData.get("amount");
@@ -121,6 +125,8 @@ export async function updateCheque(
   formData: FormData
 ): Promise<ActionResponse<{ id: number; customerId: number }>> {
   try {
+    await requireAuth();
+
     const id = Number(formData.get("id"));
     const chequeNumber = formData.get("chequeNumber");
     const bank = formData.get("bank");
@@ -200,6 +206,8 @@ export async function updateChequeStatus(
   newStatus: ChequeStatus
 ): Promise<ActionResponse> {
   try {
+    await requireAuth();
+
     if (!Number.isInteger(id) || id <= 0) {
       return { success: false, error: "Invalid cheque ID" };
     }
@@ -249,6 +257,8 @@ export async function deleteCheque(
   id: number
 ): Promise<ActionResponse<{ customerId: number }>> {
   try {
+    await requireAuth();
+
     if (!Number.isInteger(id) || id <= 0) {
       return { success: false, error: "Invalid cheque ID" };
     }
