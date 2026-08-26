@@ -122,7 +122,11 @@ export default function ChequeForm({
         const res = await createCheque(formData);
         if (res.success && res.data) {
           toast.success(res.message || "Cheque created successfully!");
-          router.push(`/customers/${res.data.customerId}`);
+          if (customerId) {
+            router.push(`/customers/${customerId}`);
+          } else {
+            router.push("/cheques");
+          }
         } else {
           toast.error(res.error || "Failed to create cheque");
         }
