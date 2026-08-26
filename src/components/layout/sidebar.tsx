@@ -97,18 +97,16 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold tracking-wide transition-all ${
-                  active
-                    ? "bg-slate-900 text-white shadow-sm border border-slate-800"
-                    : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-200"
-                }`}
+                className={`group flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold tracking-wide transition-all ${active
+                  ? "bg-slate-900 text-white shadow-sm border border-slate-800"
+                  : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-200"
+                  }`}
               >
                 <Icon
-                  className={`h-4 w-4 flex-shrink-0 transition-colors ${
-                    active
-                      ? "text-indigo-400"
-                      : "text-slate-500 group-hover:text-slate-300"
-                  }`}
+                  className={`h-4 w-4 flex-shrink-0 transition-colors ${active
+                    ? "text-indigo-400"
+                    : "text-slate-500 group-hover:text-slate-300"
+                    }`}
                 />
                 <span className="flex-1">{item.name}</span>
                 {active && (

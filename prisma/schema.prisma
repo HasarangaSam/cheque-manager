@@ -17,7 +17,6 @@ model Customer {
   id        Int      @id @default(autoincrement())
   name      String
   phone     String
-  email     String?
   address   String?
   notes     String?
   createdAt DateTime @default(now())
@@ -31,7 +30,6 @@ model Cheque {
   chequeNumber String
   bank         String
   amount       Decimal      @db.Decimal(12, 2)
-  chequeDate   DateTime
   dueDate      DateTime
   status       ChequeStatus @default(PENDING)
   notes        String?

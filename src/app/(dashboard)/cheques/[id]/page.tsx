@@ -8,7 +8,6 @@ import {
   CreditCard,
   User,
   Phone,
-  Mail,
   FileText,
   Clock,
 } from "lucide-react";
@@ -47,7 +46,6 @@ export default async function ChequeDetailsPage({
           id: true,
           name: true,
           phone: true,
-          email: true,
           address: true,
         },
       },
@@ -145,17 +143,6 @@ export default async function ChequeDetailsPage({
                   </dd>
                 </div>
 
-                <div>
-                  <dt className="text-xs font-medium uppercase text-slate-500">Issued Date</dt>
-                  <dd className="mt-1 text-sm font-medium text-slate-900">
-                    {cheque.chequeDate.toLocaleDateString("en-US", {
-                      weekday: "short",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </dd>
-                </div>
 
                 <div>
                   <dt className="text-xs font-medium uppercase text-slate-500">Due / Realization Date</dt>
@@ -202,10 +189,6 @@ export default async function ChequeDetailsPage({
                   <p className="mt-0.5 text-sm font-medium text-slate-800">{cheque.customer.phone}</p>
                 </div>
 
-                <div>
-                  <p className="text-xs font-medium uppercase text-slate-500">Email</p>
-                  <p className="mt-0.5 text-sm font-medium text-slate-800">{cheque.customer.email ?? "—"}</p>
-                </div>
 
                 <div>
                   <p className="text-xs font-medium uppercase text-slate-500">Address</p>

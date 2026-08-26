@@ -16,7 +16,6 @@ export async function createCustomer(
   try {
     const name = formData.get("name");
     const phone = formData.get("phone");
-    const email = formData.get("email");
     const address = formData.get("address");
     const notes = formData.get("notes");
 
@@ -32,7 +31,6 @@ export async function createCustomer(
       data: {
         name: name.trim(),
         phone: phone.trim(),
-        email: typeof email === "string" && email.trim() ? email.trim() : null,
         address:
           typeof address === "string" && address.trim() ? address.trim() : null,
         notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
@@ -64,7 +62,6 @@ export async function updateCustomer(
     const id = Number(formData.get("id"));
     const name = formData.get("name");
     const phone = formData.get("phone");
-    const email = formData.get("email");
     const address = formData.get("address");
     const notes = formData.get("notes");
 
@@ -87,7 +84,6 @@ export async function updateCustomer(
       data: {
         name: name.trim(),
         phone: phone.trim(),
-        email: typeof email === "string" && email.trim() ? email.trim() : null,
         address:
           typeof address === "string" && address.trim() ? address.trim() : null,
         notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,

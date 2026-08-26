@@ -10,7 +10,6 @@ import {
   Users,
   CreditCard,
   Phone,
-  Mail,
   Loader2,
   ChevronRight,
   Filter,
@@ -23,7 +22,6 @@ export type SerializedCustomer = {
   id: number;
   name: string;
   phone: string;
-  email: string | null;
   address: string | null;
   notes: string | null;
   totalChequesCount: number;
@@ -38,7 +36,7 @@ type CustomersTableProps = {
 
 export default function CustomersTable({
   customers,
-  defaultPageSize = 10,
+  defaultPageSize = 50,
 }: CustomersTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,7 +55,6 @@ export default function CustomersTable({
       return (
         c.name.toLowerCase().includes(term) ||
         c.phone.toLowerCase().includes(term) ||
-        (c.email && c.email.toLowerCase().includes(term)) ||
         (c.address && c.address.toLowerCase().includes(term)) ||
         (c.notes && c.notes.toLowerCase().includes(term))
       );
@@ -107,7 +104,7 @@ export default function CustomersTable({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search customers by name, phone, email..."
+            placeholder="Search customers by name or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400"
@@ -182,12 +179,6 @@ export default function CustomersTable({
                           <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                           <span className="font-mono">{customer.phone}</span>
                         </div>
-                        {customer.email && (
-                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                            <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate max-w-[180px]">{customer.email}</span>
-                          </div>
-                        )}
                       </div>
                     </td>
 

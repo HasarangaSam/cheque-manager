@@ -14,7 +14,6 @@ type CustomerFormData = {
   id?: number;
   name?: string;
   phone?: string;
-  email?: string | null;
   address?: string | null;
   notes?: string | null;
 };
@@ -115,29 +114,6 @@ export default function CustomerForm({ mode, initialData }: CustomerFormProps) {
           />
         </div>
 
-        <div>
-          <label
-            htmlFor="email"
-            className="mb-2 block text-xs font-semibold uppercase tracking-wider"
-            style={{ color: "var(--muted)" }}
-          >
-            Email Address
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="e.g. john@example.com"
-            defaultValue={initialData?.email || ""}
-            disabled={isPending}
-            className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-60"
-            style={{
-              borderColor: "var(--border)",
-              backgroundColor: "#f8fafc",
-              color: "var(--foreground)",
-            }}
-          />
-        </div>
 
         <div>
           <label

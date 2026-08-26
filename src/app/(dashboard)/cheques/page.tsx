@@ -34,7 +34,6 @@ export default async function ChequesPage() {
       chequeNumber: c.chequeNumber,
       bank: c.bank,
       amount: Number(c.amount),
-      chequeDate: c.chequeDate.toISOString(),
       dueDate: c.dueDate.toISOString(),
       status: c.status,
       notes: c.notes,
@@ -79,7 +78,7 @@ export default async function ChequesPage() {
             </div>
           </div>
           <Link
-            href="/customers"
+            href="/cheques/new"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-indigo-500 shadow-sm shadow-indigo-600/20"
           >
             <Plus className="h-4 w-4" />

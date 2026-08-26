@@ -91,7 +91,6 @@ export default async function EditCustomerPage({
               id: customer.id,
               name: customer.name,
               phone: customer.phone,
-              email: customer.email,
               address: customer.address,
               notes: customer.notes,
             }}

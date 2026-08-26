@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  Mail,
   Phone,
   MapPin,
   FileText,
@@ -53,7 +52,6 @@ export default async function CustomerDetailsPage({
       chequeNumber: c.chequeNumber,
       bank: c.bank,
       amount: Number(c.amount),
-      chequeDate: c.chequeDate.toISOString(),
       dueDate: c.dueDate.toISOString(),
       status: c.status,
       notes: c.notes,
@@ -139,10 +137,6 @@ export default async function CustomerDetailsPage({
               <div className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-slate-400" />
                 <span className="text-sm font-semibold text-slate-900">{customer.phone}</span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Mail className="h-4 w-4 text-slate-400" />
-                <span className="text-sm text-slate-700">{customer.email ?? "—"}</span>
               </div>
               <div className="flex items-start gap-2.5">
                 <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />

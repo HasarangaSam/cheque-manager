@@ -26,7 +26,6 @@ export type SerializedCheque = {
   chequeNumber: string;
   bank: string;
   amount: number;
-  chequeDate: string; // ISO string
   dueDate: string; // ISO string
   status: ChequeStatus;
   notes: string | null;
@@ -49,7 +48,7 @@ type ChequesTableProps = {
 export default function ChequesTable({
   cheques,
   showCustomerColumn = true,
-  defaultPageSize = 10,
+  defaultPageSize = 50,
 }: ChequesTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -252,9 +251,6 @@ export default function ChequesTable({
                         >
                           {cheque.chequeNumber}
                         </Link>
-                        <p className="text-[11px] text-slate-400">
-                          Issued: {new Date(cheque.chequeDate).toLocaleDateString()}
-                        </p>
                       </td>
 
                       {/* Customer */}

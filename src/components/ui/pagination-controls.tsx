@@ -19,7 +19,7 @@ export default function PaginationControls({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 25, 50, 100],
+  pageSizeOptions = [50, 100, 200],
 }: PaginationControlsProps) {
   if (totalItems === 0) return null;
 

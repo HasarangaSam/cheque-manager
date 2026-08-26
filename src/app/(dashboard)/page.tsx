@@ -48,7 +48,6 @@ export default async function DashboardPage() {
       chequeNumber: c.chequeNumber,
       bank: c.bank,
       amount: Number(c.amount),
-      chequeDate: c.chequeDate.toISOString(),
       dueDate: c.dueDate.toISOString(),
       status: c.status,
       notes: c.notes,
@@ -154,7 +153,7 @@ export default async function DashboardPage() {
               New Customer
             </Link>
             <Link
-              href="/customers"
+              href="/cheques/new"
               className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-600/20 hover:bg-indigo-500 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />

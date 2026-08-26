@@ -28,7 +28,6 @@ export default async function CustomersPage() {
       id: c.id,
       name: c.name,
       phone: c.phone,
-      email: c.email,
       address: c.address,
       notes: c.notes,
       totalChequesCount: c._count.cheques,

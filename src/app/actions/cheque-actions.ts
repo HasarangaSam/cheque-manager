@@ -53,7 +53,6 @@ export async function createCheque(
     const chequeNumber = formData.get("chequeNumber");
     const bank = formData.get("bank");
     const amount = formData.get("amount");
-    const chequeDate = formData.get("chequeDate");
     const dueDate = formData.get("dueDate");
     const notes = formData.get("notes");
     const customerId = Number(formData.get("customerId"));
@@ -70,13 +69,8 @@ export async function createCheque(
       return { success: false, error: "Bank is required" };
     }
 
-    const parsedChequeDate = parseDateOnly(chequeDate);
     const parsedDueDate = parseDateOnly(dueDate);
     const parsedAmount = parseMoney(amount);
-
-    if (parsedDueDate < parsedChequeDate) {
-      return { success: false, error: "Due date cannot be before cheque date" };
-    }
 
     // Verify customer exists
     const customer = await prisma.customer.findUnique({
@@ -98,7 +92,6 @@ export async function createCheque(
         chequeNumber: chequeNumber.trim(),
         bank: bank.trim(),
         amount: parsedAmount,
-        chequeDate: parsedChequeDate,
         dueDate: parsedDueDate,
         status: "PENDING",
         notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
@@ -132,7 +125,6 @@ export async function updateCheque(
     const chequeNumber = formData.get("chequeNumber");
     const bank = formData.get("bank");
     const amount = formData.get("amount");
-    const chequeDate = formData.get("chequeDate");
     const dueDate = formData.get("dueDate");
     const status = formData.get("status");
     const notes = formData.get("notes");
@@ -153,13 +145,8 @@ export async function updateCheque(
       return { success: false, error: "Invalid cheque status" };
     }
 
-    const parsedChequeDate = parseDateOnly(chequeDate);
     const parsedDueDate = parseDateOnly(dueDate);
     const parsedAmount = parseMoney(amount);
-
-    if (parsedDueDate < parsedChequeDate) {
-      return { success: false, error: "Due date cannot be before cheque date" };
-    }
 
     const existingCheque = await prisma.cheque.findUnique({
       where: {
@@ -182,7 +169,6 @@ export async function updateCheque(
         chequeNumber: chequeNumber.trim(),
         bank: bank.trim(),
         amount: parsedAmount,
-        chequeDate: parsedChequeDate,
         dueDate: parsedDueDate,
         status,
         notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,

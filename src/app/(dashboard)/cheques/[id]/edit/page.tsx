@@ -71,7 +71,6 @@ export default async function EditChequePage({ params }: EditChequePageProps) {
               bank: cheque.bank,
               amount: Number(cheque.amount),
               status: cheque.status,
-              chequeDate: cheque.chequeDate,
               dueDate: cheque.dueDate,
               notes: cheque.notes,
             }}
