@@ -3,6 +3,8 @@ import { ArrowLeft, CreditCard } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import ChequeForm from "@/components/cheques/cheque-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function DirectNewChequePage() {
   const customers = await prisma.customer.findMany({
     orderBy: { name: "asc" },

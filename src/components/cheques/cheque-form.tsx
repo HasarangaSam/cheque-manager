@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Loader2, Search, User, X } from "lucide-react";
 import { createCheque, updateCheque } from "@/app/actions/cheque-actions";
+import { getCustomersForSelection } from "@/app/actions/customer-actions";
 import type { ChequeStatus } from "@/lib/cheque-status";
 
 type ChequeFormData = {
@@ -72,10 +73,32 @@ export default function ChequeForm({
   );
   const [rawAmount, setRawAmount] = useState(initialAmountRaw);
 
+  const [customerList, setCustomerList] = useState<CustomerOption[]>(customers || []);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Sync and fetch fresh customer list on mount and when dropdown opens
+  useEffect(() => {
+    if (customers !== undefined) {
+      setCustomerList(customers);
+      getCustomersForSelection()
+        .then((fresh) => {
+          if (fresh) setCustomerList(fresh);
+        })
+        .catch(console.error);
+    }
+  }, [customers]);
+
+  const refreshCustomers = async () => {
+    try {
+      const fresh = await getCustomersForSelection();
+      if (fresh) setCustomerList(fresh);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -89,7 +112,7 @@ export default function ChequeForm({
   }, []);
 
   const filteredCustomers = customers
-    ? customers.filter((c) => {
+    ? customerList.filter((c) => {
         const term = searchTerm.toLowerCase().trim();
         if (!term) return true;
         return (
@@ -210,7 +233,10 @@ export default function ChequeForm({
                     setSearchTerm(e.target.value);
                     setDropdownOpen(true);
                   }}
-                  onFocus={() => setDropdownOpen(true)}
+                  onFocus={() => {
+                    refreshCustomers();
+                    setDropdownOpen(true);
+                  }}
                   disabled={isPending}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3.5 text-sm text-slate-900 outline-none transition-all focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-60"
                 />
@@ -219,7 +245,7 @@ export default function ChequeForm({
                   <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
                     {filteredCustomers.length === 0 ? (
                       <p className="px-4 py-3 text-xs text-slate-500">
-                        {customers.length === 0
+                        {customerList.length === 0
                           ? "No customers found. Add a customer first."
                           : "No customers match your search."}
                       </p>

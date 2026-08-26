@@ -8,6 +8,8 @@ import {
 } from "@/lib/cheque-status";
 import ChequesTable, { SerializedCheque } from "@/components/cheques/cheques-table";
 
+export const dynamic = "force-dynamic";
+
 export default async function ChequesPage() {
   const cheques = await prisma.cheque.findMany({
     orderBy: { dueDate: "asc" },

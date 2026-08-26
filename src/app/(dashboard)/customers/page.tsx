@@ -3,6 +3,8 @@ import { Users, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import CustomersTable, { SerializedCustomer } from "@/components/customers/customers-table";
 
+export const dynamic = "force-dynamic";
+
 export default async function CustomersPage() {
   const customers = await prisma.customer.findMany({
     orderBy: { name: "asc" },

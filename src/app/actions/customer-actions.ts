@@ -39,6 +39,7 @@ export async function createCustomer(
 
     revalidatePath("/");
     revalidatePath("/customers");
+    revalidatePath("/cheques/new");
 
     return {
       success: true,
@@ -93,6 +94,8 @@ export async function updateCustomer(
     revalidatePath("/");
     revalidatePath("/customers");
     revalidatePath(`/customers/${id}`);
+    revalidatePath("/cheques");
+    revalidatePath("/cheques/new");
 
     return {
       success: true,
@@ -124,6 +127,7 @@ export async function deleteCustomer(id: number): Promise<ActionResponse> {
     revalidatePath("/");
     revalidatePath("/customers");
     revalidatePath("/cheques");
+    revalidatePath("/cheques/new");
 
     return {
       success: true,
@@ -136,5 +140,24 @@ export async function deleteCustomer(id: number): Promise<ActionResponse> {
       error:
         error instanceof Error ? error.message : "Failed to delete customer",
     };
+  }
+}
+
+export async function getCustomersForSelection(): Promise<
+  Array<{ id: number; name: string; phone: string }>
+> {
+  try {
+    const customers = await prisma.customer.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+      },
+    });
+    return customers;
+  } catch (error) {
+    console.error("Failed to fetch customers for selection:", error);
+    return [];
   }
 }

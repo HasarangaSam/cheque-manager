@@ -17,6 +17,8 @@ import {
 } from "@/lib/cheque-status";
 import ChequesTable, { SerializedCheque } from "@/components/cheques/cheques-table";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const [customers, cheques] = await Promise.all([
     prisma.customer.findMany({
