@@ -68,7 +68,7 @@ export default function ChequesTable({
   currentPage = 1,
   pageSize = 50,
   searchQuery = "",
-  currentStatusFilter = "ALL",
+  currentStatusFilter = "DUE_SOON",
   statusCounts,
   defaultPageSize = 50,
 }: ChequesTableProps) {
@@ -78,7 +78,8 @@ export default function ChequesTable({
   const searchParams = useSearchParams();
 
   const [searchTerm, setSearchTerm] = useState(searchQuery);
-  const [clientStatusFilter, setClientStatusFilter] = useState<string>("ALL");
+  const [clientStatusFilter, setClientStatusFilter] =
+    useState<string>("DUE_SOON");
   const [clientCurrentPage, setClientCurrentPage] = useState(1);
   const [clientPageSize, setClientPageSize] = useState(defaultPageSize);
 
@@ -118,7 +119,7 @@ export default function ChequesTable({
     if (isServerDriven) {
       const params = new URLSearchParams(searchParams.toString());
       if (status === "ALL") {
-        params.delete("status");
+        params.set("status", "ALL");
       } else {
         params.set("status", status);
       }
@@ -174,12 +175,27 @@ export default function ChequesTable({
     if (isServerDriven) return cheques;
 
     return cheques.filter((cheque) => {
-      if (clientStatusFilter === "OVERDUE" && cheque.attentionStatus !== "OVERDUE") return false;
-      if (clientStatusFilter === "DUE_SOON" && cheque.attentionStatus !== "DUE_SOON") return false;
-      if (clientStatusFilter === "UPCOMING" && cheque.attentionStatus !== "UPCOMING") return false;
-      if (clientStatusFilter === "CLEARED" && cheque.status !== "CLEARED") return false;
-      if (clientStatusFilter === "BOUNCED" && cheque.status !== "BOUNCED") return false;
-      if (clientStatusFilter === "PENDING" && cheque.status !== "PENDING") return false;
+      if (
+        clientStatusFilter === "OVERDUE" &&
+        cheque.attentionStatus !== "OVERDUE"
+      )
+        return false;
+      if (
+        clientStatusFilter === "DUE_SOON" &&
+        cheque.attentionStatus !== "DUE_SOON"
+      )
+        return false;
+      if (
+        clientStatusFilter === "UPCOMING" &&
+        cheque.attentionStatus !== "UPCOMING"
+      )
+        return false;
+      if (clientStatusFilter === "CLEARED" && cheque.status !== "CLEARED")
+        return false;
+      if (clientStatusFilter === "BOUNCED" && cheque.status !== "BOUNCED")
+        return false;
+      if (clientStatusFilter === "PENDING" && cheque.status !== "PENDING")
+        return false;
 
       if (!searchTerm.trim()) return true;
       const term = searchTerm.toLowerCase();
@@ -192,22 +208,33 @@ export default function ChequesTable({
     });
   }, [cheques, clientStatusFilter, searchTerm, isServerDriven]);
 
-  const activeCounts = isServerDriven && statusCounts ? statusCounts : clientCounts;
-  const activeStatusFilter = isServerDriven ? currentStatusFilter : clientStatusFilter;
+  const activeCounts =
+    isServerDriven && statusCounts ? statusCounts : clientCounts;
+  const activeStatusFilter = isServerDriven
+    ? currentStatusFilter
+    : clientStatusFilter;
   const activePage = isServerDriven ? currentPage : clientCurrentPage;
   const activePageSize = isServerDriven ? pageSize : clientPageSize;
-  const activeTotalItems = isServerDriven ? (totalCount ?? cheques.length) : clientFilteredCheques.length;
+  const activeTotalItems = isServerDriven
+    ? (totalCount ?? cheques.length)
+    : clientFilteredCheques.length;
   const totalPages = Math.ceil(activeTotalItems / activePageSize) || 1;
 
   const displayCheques = useMemo(() => {
     if (isServerDriven) return cheques;
     const start = (clientCurrentPage - 1) * clientPageSize;
     return clientFilteredCheques.slice(start, start + clientPageSize);
-  }, [isServerDriven, cheques, clientFilteredCheques, clientCurrentPage, clientPageSize]);
+  }, [
+    isServerDriven,
+    cheques,
+    clientFilteredCheques,
+    clientCurrentPage,
+    clientPageSize,
+  ]);
 
   function handleDelete(id: number, chequeNumber: string) {
     const confirmed = window.confirm(
-      `Are you sure you want to delete Cheque "${chequeNumber}"? This action cannot be undone.`
+      `Are you sure you want to delete Cheque "${chequeNumber}"? This action cannot be undone.`,
     );
     if (!confirmed) return;
 
@@ -253,12 +280,39 @@ export default function ChequesTable({
         {/* Status Filter Tabs (Scrollable on mobile) */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full rounded-xl border border-slate-200 bg-slate-100/80 p-1 shrink-0 scrollbar-none">
           {[
+            {
+              id: "DUE_SOON",
+              label: "Due Soon",
+              count: activeCounts.DUE_SOON,
+              alert: activeCounts.DUE_SOON > 0,
+              badgeBg: "bg-amber-600 text-white",
+            },
+            {
+              id: "OVERDUE",
+              label: "Overdue",
+              count: activeCounts.OVERDUE,
+              alert: activeCounts.OVERDUE > 0,
+              badgeBg: "bg-red-600 text-white",
+            },
+            {
+              id: "UPCOMING",
+              label: "Upcoming",
+              count: activeCounts.UPCOMING,
+              alert: false,
+            },
+            {
+              id: "CLEARED",
+              label: "Cleared",
+              count: activeCounts.CLEARED,
+              alert: false,
+            },
+            {
+              id: "BOUNCED",
+              label: "Bounced",
+              count: activeCounts.BOUNCED,
+              alert: false,
+            },
             { id: "ALL", label: "All", count: activeCounts.ALL, alert: false },
-            { id: "OVERDUE", label: "Overdue", count: activeCounts.OVERDUE, alert: activeCounts.OVERDUE > 0, badgeBg: "bg-red-600 text-white" },
-            { id: "DUE_SOON", label: "Due Soon", count: activeCounts.DUE_SOON, alert: activeCounts.DUE_SOON > 0, badgeBg: "bg-amber-600 text-white" },
-            { id: "UPCOMING", label: "Upcoming", count: activeCounts.UPCOMING, alert: false },
-            { id: "CLEARED", label: "Cleared", count: activeCounts.CLEARED, alert: false },
-            { id: "BOUNCED", label: "Bounced", count: activeCounts.BOUNCED, alert: false },
           ].map((tab) => {
             const isActive = activeStatusFilter === tab.id;
             return (
@@ -278,8 +332,8 @@ export default function ChequesTable({
                     tab.alert
                       ? tab.badgeBg
                       : isActive
-                      ? "bg-slate-100 text-slate-800"
-                      : "bg-slate-200 text-slate-600"
+                        ? "bg-slate-100 text-slate-800"
+                        : "bg-slate-200 text-slate-600"
                   }`}
                 >
                   {tab.count}
@@ -295,7 +349,9 @@ export default function ChequesTable({
         {displayCheques.length === 0 ? (
           <div className="px-6 py-14 text-center">
             <Filter className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-2 text-sm font-semibold text-slate-700">No cheques found</p>
+            <p className="mt-2 text-sm font-semibold text-slate-700">
+              No cheques found
+            </p>
             <p className="mt-1 text-xs text-slate-500">
               {searchTerm
                 ? "Try adjusting your search criteria"
@@ -344,8 +400,8 @@ export default function ChequesTable({
                         isOverdue
                           ? "bg-red-50/30"
                           : isDueSoon
-                          ? "bg-amber-50/20"
-                          : ""
+                            ? "bg-amber-50/20"
+                            : ""
                       }`}
                     >
                       {/* Cheque # */}
@@ -391,12 +447,15 @@ export default function ChequesTable({
                           <div className="flex items-center gap-1.5 text-xs text-slate-700">
                             <Clock className="h-3.5 w-3.5 text-slate-400" />
                             <span className="font-medium">
-                              {new Date(cheque.dueDate).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                                timeZone: "UTC",
-                              })}
+                              {new Date(cheque.dueDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  timeZone: "UTC",
+                                },
+                              )}
                             </span>
                           </div>
                           {cheque.status === "PENDING" && (
@@ -409,8 +468,8 @@ export default function ChequesTable({
                                   isOverdue
                                     ? "text-red-700"
                                     : isDueSoon
-                                    ? "text-amber-700"
-                                    : "text-slate-500"
+                                      ? "text-amber-700"
+                                      : "text-slate-500"
                                 }`}
                               >
                                 {cheque.urgencyText}
@@ -453,7 +512,9 @@ export default function ChequesTable({
                           <button
                             type="button"
                             disabled={deletingId === cheque.id}
-                            onClick={() => handleDelete(cheque.id, cheque.chequeNumber)}
+                            onClick={() =>
+                              handleDelete(cheque.id, cheque.chequeNumber)
+                            }
                             title="Delete Cheque"
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 disabled:opacity-50"
                           >

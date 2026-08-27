@@ -6,7 +6,10 @@ import {
   getDueUrgencyText,
   getChequeDaysDifference,
 } from "@/lib/cheque-status";
-import ChequesTable, { SerializedCheque, StatusCounts } from "@/components/cheques/cheques-table";
+import ChequesTable, {
+  SerializedCheque,
+  StatusCounts,
+} from "@/components/cheques/cheques-table";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -24,20 +27,25 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function startOfUtcDay(date: Date) {
   return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
   );
 }
 
 export default async function ChequesPage({ searchParams }: ChequesPageProps) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page || "1", 10) || 1);
-  const pageSize = Math.min(100, Math.max(10, parseInt(params.pageSize || "50", 10) || 50));
+  const pageSize = Math.min(
+    100,
+    Math.max(10, parseInt(params.pageSize || "50", 10) || 50),
+  );
   const query = params.q?.trim() || "";
-  const statusParam = (params.status || "ALL").toUpperCase();
+  const statusParam = (params.status || "DUE_SOON").toUpperCase();
 
   const now = new Date();
   const todayStart = startOfUtcDay(now);
-  const threeDaysAhead = new Date(todayStart.getTime() + 3 * MS_PER_DAY + (MS_PER_DAY - 1));
+  const threeDaysAhead = new Date(
+    todayStart.getTime() + 3 * MS_PER_DAY + (MS_PER_DAY - 1),
+  );
 
   // Build search filter conditions
   const searchFilter: Prisma.ChequeWhereInput = query
@@ -56,7 +64,10 @@ export default async function ChequesPage({ searchParams }: ChequesPageProps) {
   if (statusParam === "OVERDUE") {
     statusCondition = { status: "PENDING", dueDate: { lt: todayStart } };
   } else if (statusParam === "DUE_SOON") {
-    statusCondition = { status: "PENDING", dueDate: { gte: todayStart, lte: threeDaysAhead } };
+    statusCondition = {
+      status: "PENDING",
+      dueDate: { gte: todayStart, lte: threeDaysAhead },
+    };
   } else if (statusParam === "UPCOMING") {
     statusCondition = { status: "PENDING", dueDate: { gt: threeDaysAhead } };
   } else if (statusParam === "CLEARED") {
@@ -85,19 +96,27 @@ export default async function ChequesPage({ searchParams }: ChequesPageProps) {
   ] = await Promise.all([
     prisma.cheque.count({ where: searchFilter }),
     prisma.cheque.count({
-      where: { AND: [searchFilter, { status: "PENDING", dueDate: { lt: todayStart } }] },
+      where: {
+        AND: [searchFilter, { status: "PENDING", dueDate: { lt: todayStart } }],
+      },
     }),
     prisma.cheque.count({
       where: {
         AND: [
           searchFilter,
-          { status: "PENDING", dueDate: { gte: todayStart, lte: threeDaysAhead } },
+          {
+            status: "PENDING",
+            dueDate: { gte: todayStart, lte: threeDaysAhead },
+          },
         ],
       },
     }),
     prisma.cheque.count({
       where: {
-        AND: [searchFilter, { status: "PENDING", dueDate: { gt: threeDaysAhead } }],
+        AND: [
+          searchFilter,
+          { status: "PENDING", dueDate: { gt: threeDaysAhead } },
+        ],
       },
     }),
     prisma.cheque.count({
@@ -182,9 +201,12 @@ export default async function ChequesPage({ searchParams }: ChequesPageProps) {
               <CreditCard className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Cheques Register</h1>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                Cheques Register
+              </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Track, realize, and update status of all incoming customer cheques
+                Track, realize, and update status of all incoming customer
+                cheques
               </p>
             </div>
           </div>
@@ -206,10 +228,13 @@ export default async function ChequesPage({ searchParams }: ChequesPageProps) {
               <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-600 mt-0.5 sm:mt-0" />
               <div>
                 <p className="text-sm font-bold">
-                  {totalOverdueCount} {totalOverdueCount === 1 ? "Cheque is" : "Cheques are"} Overdue ({fmt(overdueTotalAmount)})
+                  {totalOverdueCount}{" "}
+                  {totalOverdueCount === 1 ? "Cheque is" : "Cheques are"}{" "}
+                  Overdue ({fmt(overdueTotalAmount)})
                 </p>
                 <p className="text-xs text-red-700 mt-0.5">
-                  Please contact the respective customers or deposit immediately.
+                  Please contact the respective customers or deposit
+                  immediately.
                 </p>
               </div>
             </div>
