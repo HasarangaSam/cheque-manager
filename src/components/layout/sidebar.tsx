@@ -11,7 +11,6 @@ import {
   X,
   LogOut,
   Shield,
-  Download,
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth-actions";
 
@@ -37,56 +36,9 @@ interface SidebarProps {
   username?: string;
 }
 
-// Interface for beforeinstallprompt event
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
-}
-
 export default function Sidebar({ username }: SidebarProps = {}) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-
-  useEffect(() => {
-    // Check if already installed / standalone
-    if (typeof window !== "undefined") {
-      const isStandalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-      if (isStandalone) {
-        setIsInstalled(true);
-      }
-
-      const handleBeforeInstallPrompt = (e: Event) => {
-        e.preventDefault();
-        setInstallPrompt(e as BeforeInstallPromptEvent);
-      };
-
-      const handleAppInstalled = () => {
-        setIsInstalled(true);
-        setInstallPrompt(null);
-      };
-
-      window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.addEventListener("appinstalled", handleAppInstalled);
-
-      return () => {
-        window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-        window.removeEventListener("appinstalled", handleAppInstalled);
-      };
-    }
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    const choiceResult = await installPrompt.userChoice;
-    if (choiceResult.outcome === "accepted") {
-      setInstallPrompt(null);
-    }
-  };
 
   // Close mobile drawer when pathname changes
   useEffect(() => {
@@ -170,21 +122,6 @@ export default function Sidebar({ username }: SidebarProps = {}) {
               </Link>
             );
           })}
-
-          {/* PWA Install Button */}
-          {installPrompt && !isInstalled && (
-            <button
-              type="button"
-              onClick={handleInstallClick}
-              className="group flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold tracking-wide text-indigo-400 bg-indigo-950/40 border border-indigo-800/40 hover:bg-indigo-900/60 hover:text-indigo-200 transition-all cursor-pointer shadow-sm"
-            >
-              <Download className="h-4 w-4 flex-shrink-0 text-indigo-400 group-hover:scale-110 transition-transform" />
-              <span className="flex-1 text-left">Install App</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-indigo-600 text-white">
-                PWA
-              </span>
-            </button>
-          )}
         </nav>
       </div>
 
@@ -243,18 +180,6 @@ export default function Sidebar({ username }: SidebarProps = {}) {
             </span>
           </Link>
         </div>
-
-        {/* Mobile quick install button */}
-        {installPrompt && !isInstalled && (
-          <button
-            type="button"
-            onClick={handleInstallClick}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-indigo-600/30 hover:bg-indigo-500 active:scale-95 transition-all"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Install</span>
-          </button>
-        )}
       </header>
 
       {/* Mobile Slide-Over Drawer with Backdrop */}
