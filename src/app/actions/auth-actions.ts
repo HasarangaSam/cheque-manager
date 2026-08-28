@@ -143,14 +143,8 @@ export async function registerAction(
 
 export async function logoutAction() {
   const cookieStore = await cookies();
-  cookieStore.set(AUTH_COOKIE_NAME, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-    expires: new Date(0),
-  });
+  cookieStore.delete(AUTH_COOKIE_NAME);
   redirect("/login");
 }
+
 

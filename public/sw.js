@@ -1,20 +1,19 @@
 // ChequeManager PWA Service Worker
-// Lightweight service worker for standalone PWA installability
+// Lightweight pass-through service worker to enable standalone PWA installability
+
+const CACHE_NAME = "chequemanager-v1";
 
 self.addEventListener("install", (event) => {
+  // Activate immediately without waiting for old workers
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
+  // Take control of all pages under this scope immediately
   event.waitUntil(self.clients.claim());
 });
 
-// Pass-through fetch handler for GET requests only
-// Non-GET requests (POST, Server Actions, API mutations) bypass the service worker completely
-// to prevent Set-Cookie header stripping or redirect caching in PWA webviews.
+// Network-first / pass-through fetch handler (no caching needed per specification)
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") {
-    return;
-  }
   event.respondWith(fetch(event.request));
 });
