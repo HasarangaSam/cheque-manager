@@ -12,7 +12,6 @@ import {
   LogOut,
   Shield,
 } from "lucide-react";
-import { logoutAction } from "@/app/actions/auth-actions";
 
 const navigation = [
   {
@@ -39,6 +38,20 @@ interface SidebarProps {
 export default function Sidebar({ username }: SidebarProps = {}) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleSignOut = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Logout request error:", err);
+    }
+    // Hard window navigation to clear client router cache and PWA webview state
+    window.location.href = "/login";
+  };
 
   // Close mobile drawer when pathname changes
   useEffect(() => {
@@ -129,13 +142,14 @@ export default function Sidebar({ username }: SidebarProps = {}) {
         {/* User Account & Logout Footer */}
         <div className="border-t border-slate-800/80 px-3 py-3 bg-slate-950/60 space-y-1.5">
           {/* Sign Out nav item */}
-          <form action={logoutAction}>
+          <form onSubmit={handleSignOut}>
             <button
               type="submit"
-              className="group flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold tracking-wide text-slate-400 hover:bg-rose-950/40 hover:text-rose-400 transition-all cursor-pointer"
+              disabled={isLoggingOut}
+              className="group flex w-full items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold tracking-wide text-slate-400 hover:bg-rose-950/40 hover:text-rose-400 transition-all cursor-pointer disabled:opacity-50"
             >
               <LogOut className="h-4 w-4 flex-shrink-0 text-slate-500 group-hover:text-rose-400 transition-colors" />
-              <span>Sign Out</span>
+              <span>{isLoggingOut ? "Signing Out..." : "Sign Out"}</span>
             </button>
           </form>
 
