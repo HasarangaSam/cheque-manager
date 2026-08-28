@@ -32,7 +32,11 @@ const navigation = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  username?: string;
+}
+
+export default function Sidebar({ username }: SidebarProps = {}) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -141,7 +145,9 @@ export default function Sidebar() {
               <Shield className="h-3 w-3" />
             </div>
             <div className="truncate">
-              <p className="text-xs font-semibold text-slate-200 truncate">Admin</p>
+              <p className="text-xs font-semibold text-slate-200 truncate capitalize">
+                {username || "Admin"}
+              </p>
               <p className="text-[10px] text-emerald-400 font-medium">Active Session</p>
             </div>
           </div>

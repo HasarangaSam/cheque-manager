@@ -88,7 +88,7 @@ export default async function ChequeDetailsPage({
                 <StatusBadge status={attentionStatus} urgencyText={urgencyText} />
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Issued for <span className="font-semibold text-slate-800">{cheque.customer.name}</span>
+                Received from <span className="font-semibold text-slate-800">{cheque.customer.name}</span>
               </p>
             </div>
           </div>
@@ -152,6 +152,20 @@ export default async function ChequeDetailsPage({
                       year: "numeric",
                       month: "long",
                       day: "numeric",
+                    })}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt className="text-xs font-medium uppercase text-slate-500">Created At</dt>
+                  <dd className="mt-1 text-sm font-semibold text-slate-900">
+                    {cheque.createdAt.toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
                     })}
                   </dd>
                 </div>

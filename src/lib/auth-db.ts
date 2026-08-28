@@ -24,8 +24,31 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 // ---------------------------------------------------------------------------
-// Database operations
+// Credential verification
 // ---------------------------------------------------------------------------
+
+/**
+ * Verify credentials against environment variables (developer/master credentials).
+ * Returns the username if valid, null otherwise.
+ */
+export function verifyCredentialsFromEnv(
+  username: string,
+  password: string
+): { username: string } | null {
+  const envUsername = process.env.AUTH_USERNAME;
+  const envPassword = process.env.AUTH_PASSWORD;
+
+  if (
+    envUsername &&
+    envPassword &&
+    username.trim().toLowerCase() === envUsername.trim().toLowerCase() &&
+    password === envPassword
+  ) {
+    return { username: envUsername.trim() };
+  }
+
+  return null;
+}
 
 /**
  * Verify credentials against the User table.
@@ -50,6 +73,25 @@ export async function verifyCredentialsFromDB(
   } catch {
     return null;
   }
+}
+
+/**
+ * Verify credentials against both environment variables and the database.
+ * Returns the authenticated username if valid, null otherwise.
+ */
+export async function verifyUserCredentials(
+  username: string,
+  password: string
+): Promise<{ username: string } | null> {
+  // 1. Check developer / admin credentials from environment variables
+  const envUser = verifyCredentialsFromEnv(username, password);
+  if (envUser) return envUser;
+
+  // 2. Fall back to database credentials
+  const dbUser = await verifyCredentialsFromDB(username, password);
+  if (dbUser) return { username: dbUser.username };
+
+  return null;
 }
 
 /**

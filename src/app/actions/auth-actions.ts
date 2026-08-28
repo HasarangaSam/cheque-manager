@@ -7,7 +7,7 @@ import {
   createSessionToken,
 } from "@/lib/auth";
 import {
-  verifyCredentialsFromDB,
+  verifyUserCredentials,
   createUser,
   hasAnyUser,
 } from "@/lib/auth-db";
@@ -38,7 +38,7 @@ export async function loginAction(
     return { success: false, error: "Username and password are required." };
   }
 
-  const user = await verifyCredentialsFromDB(username, password);
+  const user = await verifyUserCredentials(username.trim(), password);
 
   if (!user) {
     return {
