@@ -62,11 +62,11 @@ export default async function ChequesPage({ searchParams }: ChequesPageProps) {
   // Status specific filter
   let statusCondition: Prisma.ChequeWhereInput = {};
   if (statusParam === "OVERDUE") {
-    statusCondition = { status: "PENDING", dueDate: { lt: todayStart } };
+    statusCondition = { status: "PENDING", dueDate: { lte: todayStart } };
   } else if (statusParam === "DUE_SOON") {
     statusCondition = {
       status: "PENDING",
-      dueDate: { gte: todayStart, lte: threeDaysAhead },
+      dueDate: { gt: todayStart, lte: threeDaysAhead },
     };
   } else if (statusParam === "UPCOMING") {
     statusCondition = { status: "PENDING", dueDate: { gt: threeDaysAhead } };
@@ -97,7 +97,7 @@ export default async function ChequesPage({ searchParams }: ChequesPageProps) {
     prisma.cheque.count({ where: searchFilter }),
     prisma.cheque.count({
       where: {
-        AND: [searchFilter, { status: "PENDING", dueDate: { lt: todayStart } }],
+        AND: [searchFilter, { status: "PENDING", dueDate: { lte: todayStart } }],
       },
     }),
     prisma.cheque.count({
@@ -106,7 +106,7 @@ export default async function ChequesPage({ searchParams }: ChequesPageProps) {
           searchFilter,
           {
             status: "PENDING",
-            dueDate: { gte: todayStart, lte: threeDaysAhead },
+            dueDate: { gt: todayStart, lte: threeDaysAhead },
           },
         ],
       },
@@ -142,7 +142,7 @@ export default async function ChequesPage({ searchParams }: ChequesPageProps) {
       },
     }),
     prisma.cheque.aggregate({
-      where: { status: "PENDING", dueDate: { lt: todayStart } },
+      where: { status: "PENDING", dueDate: { lte: todayStart } },
       _sum: { amount: true },
       _count: { _all: true },
     }),

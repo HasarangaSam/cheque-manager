@@ -42,7 +42,7 @@ export function getChequeAttentionStatus(
 
   const differenceInDays = getChequeDaysDifference(dueDate, today);
 
-  if (differenceInDays < 0) {
+  if (differenceInDays <= 0) {
     return "OVERDUE";
   }
 

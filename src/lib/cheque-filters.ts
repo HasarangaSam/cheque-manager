@@ -28,11 +28,11 @@ export function getChequeFilters(query: string, status: string, now = new Date()
 
   let statusCondition: Prisma.ChequeWhereInput = {};
   if (status === "OVERDUE") {
-    statusCondition = { status: "PENDING", dueDate: { lt: todayStart } };
+    statusCondition = { status: "PENDING", dueDate: { lte: todayStart } };
   } else if (status === "DUE_SOON") {
     statusCondition = {
       status: "PENDING",
-      dueDate: { gte: todayStart, lte: threeDaysAhead },
+      dueDate: { gt: todayStart, lte: threeDaysAhead },
     };
   } else if (status === "UPCOMING") {
     statusCondition = { status: "PENDING", dueDate: { gt: threeDaysAhead } };
